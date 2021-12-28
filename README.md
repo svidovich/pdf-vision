@@ -9,6 +9,7 @@ You can have a `scratch/` folder to stash your items, and the gitignore will han
 # Dependencies
 
 We require PyPDF2 for reading PDFs.
+We require Pillow for handling images.
 
 # Getting Started
 
