@@ -57,7 +57,7 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
                 if DEBUG:
                     print(f'Attempting to load image {image_number} on page {page_number}.')
                 image = {
-                    'name': f'{page_number}_{image_number}.{image_file_extension}',
+                    'name': f'{page_number}_{image_number}{image_file_extension}',
                     'image_data': Image.frombytes(image_mode, (width, height), image_data) \
                         if image_mode == 'RGB' \
                             else Image.open(BytesIO(image_data))
@@ -68,13 +68,24 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
 
 def dump_images(output_directory: str, images: List[dict]) -> None:
     print(f'Dumping {len(images)} images...')
-    image_save_path = f'./{output_directory}/images/'
-    done = os.makedirs(image_save_path, exist_ok=True)
+    image_save_directory = f'./{output_directory}/images/'
+    os.makedirs(image_save_directory, exist_ok=True)
+
+    progress = 0
+    print('Processing images...')
+    for image in images:
+        image_file_name: str = image['name']
+        image_data: Image = image['image_data']
+        image_save_path = f'{image_save_directory}{image_file_name}'
+        image_data.save(image_save_path)
+        if DEBUG:
+            print(f'Saved {progress} / {len(images)} images.\r', end='')
+        progress += 1
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', required=True, help='The PDF to read.')
-    parser.add_argument('-o', '--output-directory', required=False, default='output', help='Where to place the output of the script.')
+    parser.add_argument('-o', '--output-directory', required=False, default='scratch', help='Where to place the output of the script.')
     parser.add_argument('-d', '--dump-images', required=False, action='store_true', help='Output the images from the PDF.')
     args = parser.parse_args()
 
