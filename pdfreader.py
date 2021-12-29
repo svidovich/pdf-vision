@@ -28,7 +28,7 @@ def get_pdf_info(reader: PdfFileReader) -> dict:
         'page_layout': reader.getPageLayout(),
     }
 
-def gather_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
+def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
     # For now, let's put the pages as images into this list and return it
     output_list = list()
     for page_number in range(page_count):
@@ -54,7 +54,8 @@ def gather_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
 
                 image_color_space = encoded_image['/ColorSpace']
                 image_mode = 'RGB' if image_color_space == '/DeviceRGB' else 'P'
-                print(f'Attempting to load image {image_number} on page {page_number}.')
+                if DEBUG:
+                    print(f'Attempting to load image {image_number} on page {page_number}.')
                 image = {
                     'name': f'{page_number}_{image_number}.{image_file_extension}',
                     'image_data': Image.frombytes(image_mode, (width, height), image_data) \
@@ -65,19 +66,28 @@ def gather_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
                 image_number += 1
     return output_list
 
+def dump_images(output_directory: str, images: List[dict]) -> None:
+    print(f'Dumping {len(images)} images...')
+    image_save_path = f'./{output_directory}/images/'
+    done = os.makedirs(image_save_path, exist_ok=True)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', required=True, help='The PDF to read.')
+    parser.add_argument('-o', '--output-directory', required=False, default='output', help='Where to place the output of the script.')
+    parser.add_argument('-d', '--dump-images', required=False, action='store_true', help='Output the images from the PDF.')
     args = parser.parse_args()
 
     input_file = args.input_file
+    output_directory = args.output_directory
 
     reader = PdfFileReader(input_file, strict=DEBUG, warndest=sys.stderr if DEBUG else os.devnull)
     info = get_pdf_info(reader)
     page_count: int = info['page_count']
-    document_images: List[dict] = gather_pages(reader, page_count)
-    print('Got some images.')
-    print(document_images)
+    document_images: List[dict] = rip_images_from_pages(reader, page_count)
+    if args.dump_images:
+        dump_images(output_directory, document_images)
+
 
 
 if __name__ == '__main__':
