@@ -72,14 +72,14 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
     os.makedirs(image_save_directory, exist_ok=True)
 
     progress = 0
-    print('Processing images...')
+    print('Saving images from PDF...')
     for image in images:
         image_file_name: str = image['name']
         image_data: Image = image['image_data']
         image_save_path = f'{image_save_directory}{image_file_name}'
         image_data.save(image_save_path)
-        if DEBUG:
-            print(f'Saved {progress} / {len(images)} images.\r', end='')
+        image_data.close()
+        print(f'Saved {progress} / {len(images)} images.\r', end='')
         progress += 1
 
 def main():
