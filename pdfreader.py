@@ -66,6 +66,16 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
                 image_number += 1
     return output_list
 
+
+def save_image(image_metadata: dict) -> bool:
+    image_file_name: str = image_metadata['name']
+    image_data: Image = image_metadata['image_data']
+    image_save_directory = image_metadata['image_save_directory']
+    image_save_path = f'{image_save_directory}{image_file_name}'
+    image_data.save(image_save_path)
+    image_data.close()
+
+
 def dump_images(output_directory: str, images: List[dict]) -> None:
     print(f'Dumping {len(images)} images...')
     image_save_directory = f'./{output_directory}/images/'
@@ -74,13 +84,13 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
     progress = 0
     print('Saving images from PDF...')
     for image in images:
-        image_file_name: str = image['name']
-        image_data: Image = image['image_data']
-        image_save_path = f'{image_save_directory}{image_file_name}'
-        image_data.save(image_save_path)
-        image_data.close()
-        print(f'Saved {progress} / {len(images)} images.\r', end='')
+        image['image_save_directory'] = image_save_directory
+    
+    for image in images:
+        save_image(image)
         progress += 1
+        print(f'Saved image {progress} / {len(images)}')
+
 
 def main():
     parser = argparse.ArgumentParser()
