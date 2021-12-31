@@ -13,6 +13,7 @@ from PyPDF2.generic import DictionaryObject, EncodedStreamObject
 from PyPDF2.pdf import PageObject
 
 DEBUG = False
+PARALLEL_IMAGE_HANDLING = False
 
 filter_to_extension = {
     '/FlateDecode': '.png',
@@ -67,7 +68,6 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
                 image_number += 1
     return output_list
 
-
 def save_image(image_metadata: dict) -> bool:
     image_file_name: str = image_metadata['name']
     image_data: Image = image_metadata['image_data']
@@ -75,6 +75,7 @@ def save_image(image_metadata: dict) -> bool:
     image_save_path = f'{image_save_directory}{image_file_name}'
     image_data.save(image_save_path)
     image_data.close()
+    return
 
 
 def dump_images(output_directory: str, images: List[dict]) -> None:
@@ -85,17 +86,19 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
     for image in images:
         image['image_save_directory'] = image_save_directory
 
-    processing_pool = Pool(cpu_count())
-
-    processing_pool.map(
-        save_image,
-        images
-    )
-
-    # for image in images:
-    #     save_image(image)
-    #     progress += 1
-    #     print(f'Saved image {progress} / {len(images)}')
+    if PARALLEL_IMAGE_HANDLING:
+        with Pool(cpu_count() // 2, maxtasksperchild=20) as processing_pool:
+            print(f'Built processing pool with {cpu_count()} processes.')
+            processing_pool.map(
+                save_image,
+                images
+            )
+    else:
+        progress = 0
+        for image in images:
+            save_image(image)
+            progress += 1
+            print(f'Saved image {progress} / {len(images)}\r', end='')
 
 
 def main():
@@ -112,6 +115,7 @@ def main():
     info = get_pdf_info(reader)
     page_count: int = info['page_count']
     document_images: List[dict] = rip_images_from_pages(reader, page_count)
+    print('Done collecting images.')
     if args.dump_images:
         dump_images(output_directory, document_images)
 
