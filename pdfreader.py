@@ -1,9 +1,10 @@
 import argparse
+import numpy
 import os
 import sys
 
 from io import BytesIO
-from multiprocessing import cpu_count, Manager, Pool, Queue
+from multiprocessing import cpu_count, Manager, Pool
 from typing import List
 
 from PIL import Image
@@ -105,6 +106,25 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
             progress += 1
             print(f'Saved image {progress} / {len(images)}\r', end='')
 
+def detect_page_split(image: Image):
+    """
+    Attempt to detect where the split is in a two-page
+    spread image of a scanned book.
+    """
+
+    # We convert to grayscale. Then, when we make an array using numpy,
+    # the resultant ndarray is 2x2 -- rows and columns to represent the
+    # pixels throughout the image, and a uint8 to represent the scale
+    # of the gray at that location.
+    grayscale_image = numpy.array(image.convert('L'))
+
+    for row in grayscale_image:
+        print(f'Row type {type(row)}')
+        for column in row:
+            print(f'Column type {type(column)}')
+            exit(1)
+
+    
 
 def main():
     parser = argparse.ArgumentParser()
@@ -124,6 +144,9 @@ def main():
     if args.dump_images:
         dump_images(output_directory, document_images)
 
+    test_image: dict = document_images[20]
+    image_data = test_image['image_data']
+    detect_page_split(image_data)
 
 
 if __name__ == '__main__':
