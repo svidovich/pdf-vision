@@ -3,6 +3,7 @@ import os
 import sys
 
 from io import BytesIO
+from multiprocessing import cpu_count, Manager, Pool, Queue
 from typing import List
 
 from PIL import Image
@@ -81,15 +82,20 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
     image_save_directory = f'./{output_directory}/images/'
     os.makedirs(image_save_directory, exist_ok=True)
 
-    progress = 0
-    print('Saving images from PDF...')
     for image in images:
         image['image_save_directory'] = image_save_directory
-    
-    for image in images:
-        save_image(image)
-        progress += 1
-        print(f'Saved image {progress} / {len(images)}')
+
+    processing_pool = Pool(cpu_count())
+
+    processing_pool.map(
+        save_image,
+        images
+    )
+
+    # for image in images:
+    #     save_image(image)
+    #     progress += 1
+    #     print(f'Saved image {progress} / {len(images)}')
 
 
 def main():
