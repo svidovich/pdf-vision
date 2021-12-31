@@ -68,14 +68,19 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
                 image_number += 1
     return output_list
 
+
 def save_image(image_metadata: dict) -> bool:
-    image_file_name: str = image_metadata['name']
-    image_data: Image = image_metadata['image_data']
-    image_save_directory = image_metadata['image_save_directory']
-    image_save_path = f'{image_save_directory}{image_file_name}'
-    image_data.save(image_save_path)
-    image_data.close()
-    return
+    try:
+        image_file_name: str = image_metadata['name']
+        image_data: Image = image_metadata['image_data']
+        image_save_directory = image_metadata['image_save_directory']
+        image_save_path = f'{image_save_directory}{image_file_name}'
+        image_data.save(image_save_path)
+        image_data.close()
+        return True
+    except Exception as e:
+        print(f'Failed to save image: {e}')
+        return False
 
 
 def dump_images(output_directory: str, images: List[dict]) -> None:
