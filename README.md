@@ -10,6 +10,8 @@ You can have a `scratch/` folder to stash your items, and the gitignore will han
 
 We require PyPDF2 for reading PDFs.
 We require Pillow for handling images.
+We require Tesseract for OCR.
+We require numpy for cool computer math.
 
 # Getting Started
 
