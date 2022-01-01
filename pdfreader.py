@@ -4,7 +4,7 @@ import os
 import sys
 
 from io import BytesIO
-from multiprocessing import cpu_count, Manager, Pool
+from multiprocessing import cpu_count, Pool
 from typing import List, Tuple, Generator
 
 from PIL import Image
@@ -14,7 +14,6 @@ from PyPDF2.generic import DictionaryObject, EncodedStreamObject
 from PyPDF2.pdf import PageObject
 
 DEBUG = False
-PARALLEL_IMAGE_HANDLING = False
 
 filter_to_extension = {
     '/FlateDecode': '.png',
@@ -90,18 +89,7 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
 
     for image in images:
         image['image_save_directory'] = image_save_directory
-
-    if PARALLEL_IMAGE_HANDLING:
-        with Pool(cpu_count() // 2, maxtasksperchild=20) as processing_pool:
-            print(f'Built processing pool with {cpu_count()} processes.')
-            processing_pool.map(
-                save_image,
-                images
-            )
-    else:
-        progress = 0
-        for image in images:
-            save_image(image)
+        save_image(image)
 
 def do_page_split(image: Image) -> Tuple:
     """
