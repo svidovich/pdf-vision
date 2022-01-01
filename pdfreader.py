@@ -5,7 +5,7 @@ import sys
 
 from io import BytesIO
 from multiprocessing import cpu_count, Manager, Pool
-from typing import List, Tuple
+from typing import List, Tuple, Generator
 
 from PIL import Image
 
@@ -31,9 +31,8 @@ def get_pdf_info(reader: PdfFileReader) -> dict:
         'page_layout': reader.getPageLayout(),
     }
 
-def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
+def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator:
     # For now, let's put the pages as images into this list and return it
-    output_list = list()
     for page_number in range(page_count):
         page: PageObject = reader.getPage(page_number)
         page_x_object: DictionaryObject = page['/Resources']['/XObject'].getObject()
@@ -67,9 +66,8 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
                         if image_mode == 'RGB' \
                             else Image.open(BytesIO(image_data))
                 }
-                output_list.append(image)
                 image_number += 1
-    return output_list
+                yield image
 
 
 def save_image(image_metadata: dict) -> bool:
@@ -80,7 +78,6 @@ def save_image(image_metadata: dict) -> bool:
         image_save_path = f'{image_save_directory}{image_file_name}'
         image_data.save(image_save_path)
         image_data.close()
-        print(image_data)
         return True
     except Exception as e:
         print(f'Failed to save image: {e}')
@@ -88,7 +85,6 @@ def save_image(image_metadata: dict) -> bool:
 
 
 def dump_images(output_directory: str, images: List[dict]) -> None:
-    print(f'Dumping {len(images)} images...')
     image_save_directory = f'./{output_directory}/images/'
     os.makedirs(image_save_directory, exist_ok=True)
 
@@ -109,7 +105,7 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
             progress += 1
             print(f'Saved image {progress} / {len(images)}\r', end='')
 
-def split_page(image: Image) -> Tuple:
+def do_page_split(image: Image) -> Tuple:
     """
     Very stupid split that cuts an image in half.
     """
@@ -126,46 +122,38 @@ def split_page(image: Image) -> Tuple:
     return (left_page, right_page)
 
 
-def split_pages(document_images: List[dict], title_page_count=0) -> List[dict]:
+def split_page(document_image: List[dict]) -> List[dict]:
     new_document_images_list = list()
-    for index, document_image in enumerate(document_images):
-        if index + 1 <= title_page_count:  # TODO: Something something off-by-one
-            new_document_images_list.append(document_image)
-            continue
-        # TODO: This isn't very forward compatible. It breaks if there is
-        # more than one image on a page. We'll come back to that if we need
-        # to, but right now, I don't wanna get tied up in a whole data modeling
-        # exercise for an MVP.
-        page: int = document_image['page']
-        original_name: str = document_image['name']
-        image_number: int = document_image['image_number']
-        original_extension: str = original_name[-4:]  # NOTE: Dirty
-        image_data = document_image['image_data']
-        left_page, right_page = split_page(image_data)
-        # left_page.close()
-        # right_page.close()
-        document_image['image_data'].close()
-        new_document_images_list.append(
-            {
-                'name': original_name,
-                'page': page,
-                'image_number': image_number,
-                'image_data': left_page
-            }
-        )
+    # TODO: This isn't very forward compatible. It breaks if there is
+    # more than one image on a page. We'll come back to that if we need
+    # to, but right now, I don't wanna get tied up in a whole data modeling
+    # exercise for an MVP.
+    page: int = document_image['page']
+    original_name: str = document_image['name']
+    image_number: int = document_image['image_number']
+    original_extension: str = original_name[-4:]  # NOTE: Dirty
+    image_data = document_image['image_data']
+    left_page, right_page = do_page_split(image_data)
 
-        new_document_images_list.append(
-            {
-                'name': f'{page}_{image_number + 1}{original_extension}',
-                'page': page,
-                'image_number': image_number + 1,
-                'image_data': right_page
-            }
-        )
+    image_data.close()
+    new_document_images_list.append(
+        {
+            'name': original_name,
+            'page': page,
+            'image_number': image_number,
+            'image_data': left_page
+        }
+    )
 
-        print(f'Successfully split {index} / {len(document_images)} pages.\r', end='')
+    new_document_images_list.append(
+        {
+            'name': f'{page}_{image_number + 1}{original_extension}',
+            'page': page,
+            'image_number': image_number + 1,
+            'image_data': right_page
+        }
+    )
 
-    print()
     return new_document_images_list
 
 def main():
@@ -184,13 +172,14 @@ def main():
     info = get_pdf_info(reader)
     page_count: int = info['page_count']
     document_images: List[dict] = rip_images_from_pages(reader, page_count)
-    print('Done collecting images.')
+    for document_image in rip_images_from_pages(reader, page_count):
+        if args.double_page:
+            document_images: List[dict] = split_page(document_image)
+        else:
+            document_images = [document_image]
 
-    if args.double_page:
-        document_images = split_pages(document_images, args.title_page_count)
-
-    if args.dump_images:
-        dump_images(output_directory, document_images)
+        if args.dump_images:
+            dump_images(output_directory, document_images)
 
 if __name__ == '__main__':
     main()
