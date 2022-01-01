@@ -80,6 +80,7 @@ def save_image(image_metadata: dict) -> bool:
         image_save_path = f'{image_save_directory}{image_file_name}'
         image_data.save(image_save_path)
         image_data.close()
+        print(image_data)
         return True
     except Exception as e:
         print(f'Failed to save image: {e}')
@@ -141,9 +142,9 @@ def split_pages(document_images: List[dict], title_page_count=0) -> List[dict]:
         original_extension: str = original_name[-4:]  # NOTE: Dirty
         image_data = document_image['image_data']
         left_page, right_page = split_page(image_data)
-        left_page.close()
-        right_page.close()
-        image_data.close()
+        # left_page.close()
+        # right_page.close()
+        document_image['image_data'].close()
         new_document_images_list.append(
             {
                 'name': original_name,
@@ -161,7 +162,10 @@ def split_pages(document_images: List[dict], title_page_count=0) -> List[dict]:
                 'image_data': right_page
             }
         )
+
         print(f'Successfully split {index} / {len(document_images)} pages.\r', end='')
+
+    print()
     return new_document_images_list
 
 def main():
