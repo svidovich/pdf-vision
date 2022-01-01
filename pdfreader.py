@@ -5,7 +5,7 @@ import sys
 
 from io import BytesIO
 from multiprocessing import cpu_count, Manager, Pool
-from typing import List
+from typing import List, Tuple
 
 from PIL import Image
 
@@ -106,25 +106,26 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
             progress += 1
             print(f'Saved image {progress} / {len(images)}\r', end='')
 
-def detect_page_split(image: Image):
+def split_pages(image: Image) -> Tuple:
     """
-    Attempt to detect where the split is in a two-page
-    spread image of a scanned book.
+    Very stupid split that cuts an image in half.
     """
 
-    # We convert to grayscale. Then, when we make an array using numpy,
-    # the resultant ndarray is 2x2 -- rows and columns to represent the
-    # pixels throughout the image, and a uint8 to represent the scale
-    # of the gray at that location.
-    grayscale_image = numpy.array(image.convert('L'))
+    image_width, image_height = image.size
+    print(image_width)
+    print(image_height)
+    print(dir(image))
+    print(image.crop.__doc__)
+    left_page = image.crop(
+        (0, 0, image_width // 2, image_height)
+    )
 
-    for row in grayscale_image:
-        print(f'Row type {type(row)}')
-        for column in row:
-            print(f'Column type {type(column)}')
-            exit(1)
+    right_page = image.crop(
+        (image_width // 2, 0, image_width, image_height)
+    )
 
-    
+    return (left_page, right_page)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -146,7 +147,7 @@ def main():
 
     test_image: dict = document_images[20]
     image_data = test_image['image_data']
-    detect_page_split(image_data)
+    split_pages(image_data)
 
 
 if __name__ == '__main__':
