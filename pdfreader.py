@@ -61,6 +61,8 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> List[dict]:
                     print(f'Attempting to load image {image_number} on page {page_number}.')
                 image = {
                     'name': f'{page_number}_{image_number}{image_file_extension}',
+                    'page': page_number,
+                    'image_number': image_number,
                     'image_data': Image.frombytes(image_mode, (width, height), image_data) \
                         if image_mode == 'RGB' \
                             else Image.open(BytesIO(image_data))
@@ -106,16 +108,12 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
             progress += 1
             print(f'Saved image {progress} / {len(images)}\r', end='')
 
-def split_pages(image: Image) -> Tuple:
+def split_page(image: Image) -> Tuple:
     """
     Very stupid split that cuts an image in half.
     """
 
     image_width, image_height = image.size
-    print(image_width)
-    print(image_height)
-    print(dir(image))
-    print(image.crop.__doc__)
     left_page = image.crop(
         (0, 0, image_width // 2, image_height)
     )
@@ -127,11 +125,47 @@ def split_pages(image: Image) -> Tuple:
     return (left_page, right_page)
 
 
+def split_pages(document_images: List[dict], title_page_count=0) -> List[dict]:
+    new_document_images_list = list()
+    for index, document_image in enumerate(document_images):
+        if index + 1 <= title_page_count:  # TODO: Something something off-by-one
+            new_document_images_list.append(document_image)
+            continue
+        # TODO: This isn't very forward compatible. It breaks if there is
+        # more than one image on a page. We'll come back to that if we need
+        # to, but right now, I don't wanna get tied up in a whole data modeling
+        # exercise for an MVP.
+        page: int = document_image['page']
+        original_name: str = document_image['name']
+        image_number: int = document_image['image_number']
+        original_extension: str = original_name[-4:]  # NOTE: Dirty
+        left_page, right_page = split_page(document_image['image_data'])
+        new_document_images_list.append(
+            {
+                'name': original_name,
+                'page': page,
+                'image_number': image_number,
+                'image_data': left_page
+            }
+        )
+
+        new_document_images_list.append(
+            {
+                'name': f'{page}_{image_number + 1}{original_extension}',
+                'page': page,
+                'image_number': image_number + 1,
+                'image_data': right_page
+            }
+        )
+    return new_document_images_list
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', required=True, help='The PDF to read.')
     parser.add_argument('-o', '--output-directory', required=False, default='scratch', help='Where to place the output of the script.')
     parser.add_argument('-d', '--dump-images', required=False, action='store_true', help='Output the images from the PDF.')
+    parser.add_argument('-t', '--double-page', required=False, action='store_true', help='The PDF is double-page in layout ( each page of the PDF is two book pages )')
+    parser.add_argument('-p', '--title-page-count', required=False, type=int, default=0, help='In a double-page spread, the number of single-page title images that exist in the PDF.')
     args = parser.parse_args()
 
     input_file = args.input_file
@@ -142,13 +176,12 @@ def main():
     page_count: int = info['page_count']
     document_images: List[dict] = rip_images_from_pages(reader, page_count)
     print('Done collecting images.')
+
+    if args.double_page:
+        document_images = split_pages(document_images, args.title_page_count)
+
     if args.dump_images:
         dump_images(output_directory, document_images)
-
-    test_image: dict = document_images[20]
-    image_data = test_image['image_data']
-    split_pages(image_data)
-
 
 if __name__ == '__main__':
     main()
