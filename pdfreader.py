@@ -102,8 +102,6 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
         progress = 0
         for image in images:
             save_image(image)
-            progress += 1
-            print(f'Saved image {progress} / {len(images)}\r', end='')
 
 def do_page_split(image: Image) -> Tuple:
     """
@@ -168,10 +166,15 @@ def main():
     input_file = args.input_file
     output_directory = args.output_directory
 
+    print(f'Reading data from {input_file}!')
     reader = PdfFileReader(input_file, strict=DEBUG, warndest=sys.stderr if DEBUG else os.devnull)
     info = get_pdf_info(reader)
     page_count: int = info['page_count']
+    print(f'Identified {page_count} pages.')
     document_images: List[dict] = rip_images_from_pages(reader, page_count)
+
+    print('Handling pages...\n')
+    pages_handled = 0
     for document_image in rip_images_from_pages(reader, page_count):
         if args.double_page:
             document_images: List[dict] = split_page(document_image)
@@ -180,6 +183,9 @@ def main():
 
         if args.dump_images:
             dump_images(output_directory, document_images)
+        
+        pages_handled += 1
+        print(f'Done handling {pages_handled} pages.\r', end='')
 
 if __name__ == '__main__':
     main()
