@@ -139,7 +139,11 @@ def split_pages(document_images: List[dict], title_page_count=0) -> List[dict]:
         original_name: str = document_image['name']
         image_number: int = document_image['image_number']
         original_extension: str = original_name[-4:]  # NOTE: Dirty
-        left_page, right_page = split_page(document_image['image_data'])
+        image_data = document_image['image_data']
+        left_page, right_page = split_page(image_data)
+        left_page.close()
+        right_page.close()
+        image_data.close()
         new_document_images_list.append(
             {
                 'name': original_name,
@@ -157,6 +161,7 @@ def split_pages(document_images: List[dict], title_page_count=0) -> List[dict]:
                 'image_data': right_page
             }
         )
+        print(f'Successfully split {index} / {len(document_images)} pages.\r', end='')
     return new_document_images_list
 
 def main():
