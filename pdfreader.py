@@ -1,5 +1,6 @@
 import argparse
 import cv2
+import math
 import numpy
 import os
 import sys
@@ -146,10 +147,29 @@ def split_page(document_image: List[dict]) -> List[dict]:
     return new_document_images_list
 
 
+# Hough line param constants
+HOUGH_STEP_SIZE_RHO = 1
+HOUGH_VOTE_THRESHOLD = 100
+HOUGH_MAX_LINE_GAP = 20
+# Canny edge detection param constants
+CANNY_FIRST_THRESHOLD = 50
+CANNY_SECOND_THRESHOLD = 200
+
 def get_text_skew_angle(image: Image) -> float:
+    image_width, image_height = image.size
     quantified_image = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
-    print(type(quantified_image))
-    print(dir(quantified_image))
+    edge_detected_image = cv2.Canny(quantified_image, CANNY_FIRST_THRESHOLD, CANNY_SECOND_THRESHOLD)
+
+    # Minimum line length is a third of the image width since there's a lot of border in my test images.
+    lines = cv2.HoughLinesP(
+        edge_detected_image, 
+        HOUGH_STEP_SIZE_RHO, 
+        math.pi / 180, 
+        HOUGH_VOTE_THRESHOLD, 
+        image_width / 3, 
+        HOUGH_MAX_LINE_GAP
+    )
+    print(lines)
     return None
 
 def main():
