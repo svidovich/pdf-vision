@@ -1,4 +1,5 @@
 import argparse
+import cv2
 import numpy
 import os
 import sys
@@ -29,6 +30,7 @@ def get_pdf_info(reader: PdfFileReader) -> dict:
         'creation_date': standard_info.get('/CreationDate'),
         'page_layout': reader.getPageLayout(),
     }
+
 
 def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator:
     # For now, let's put the pages as images into this list and return it
@@ -76,7 +78,7 @@ def save_image(image_metadata: dict) -> bool:
         image_save_directory = image_metadata['image_save_directory']
         image_save_path = f'{image_save_directory}{image_file_name}'
         image_data.save(image_save_path)
-        image_data.close()
+        # image_data.close()
         return True
     except Exception as e:
         print(f'Failed to save image: {e}')
@@ -90,6 +92,7 @@ def dump_images(output_directory: str, images: List[dict]) -> None:
     for image in images:
         image['image_save_directory'] = image_save_directory
         save_image(image)
+
 
 def do_page_split(image: Image) -> Tuple:
     """
@@ -142,6 +145,13 @@ def split_page(document_image: List[dict]) -> List[dict]:
 
     return new_document_images_list
 
+
+def get_text_skew_angle(image: Image) -> float:
+    quantified_image = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
+    print(type(quantified_image))
+    print(dir(quantified_image))
+    return None
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', required=True, help='The PDF to read.')
@@ -172,6 +182,11 @@ def main():
         if args.dump_images:
             dump_images(output_directory, document_images)
         
+        if pages_handled == 4:
+            left_image = document_images[0]['image_data']
+            get_text_skew_angle(left_image)
+            exit()
+
         pages_handled += 1
         print(f'Done handling {pages_handled} pages.\r', end='')
 
