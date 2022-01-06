@@ -190,7 +190,8 @@ def get_text_skew_angle(image: Image) -> float:
         if abs(90 - angle_degrees) < 10:
             potential_angles.append(angle_degrees)
 
-    return sum(potential_angles) / len(potential_angles)
+    if len(potential_angles) != 0:
+        return sum(potential_angles) / len(potential_angles)
 
 
 def main():
@@ -223,12 +224,16 @@ def main():
         if args.dump_images:
             dump_images(output_directory, document_images)
         
-        if pages_handled == 45:
-            left_image = document_images[0]['image_data']
-            get_text_skew_angle(left_image)
-            exit()
+        # if pages_handled == 45:
+        left_image = document_images[0]['image_data']
+        left_skew_angle = get_text_skew_angle(left_image)
+
+        right_image = document_images[1]['image_data']
+        right_skew_angle = get_text_skew_angle(right_image)
+
 
         pages_handled += 1
+        print(f'Page {pages_handled} skew angles are L {left_skew_angle} and R {right_skew_angle}')
         print(f'Done handling {pages_handled} pages.\r', end='')
 
 if __name__ == '__main__':
