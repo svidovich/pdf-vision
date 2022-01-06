@@ -149,8 +149,6 @@ def split_page(document_image: List[dict]) -> List[dict]:
 
 # Hough line param constants
 HOUGH_STEP_SIZE_RHO = 1
-HOUGH_VOTE_THRESHOLD = 100
-HOUGH_MAX_LINE_GAP = 20
 # Canny edge detection param constants
 CANNY_FIRST_THRESHOLD = 50
 CANNY_SECOND_THRESHOLD = 200
@@ -160,17 +158,40 @@ def get_text_skew_angle(image: Image) -> float:
     quantified_image = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
     edge_detected_image = cv2.Canny(quantified_image, CANNY_FIRST_THRESHOLD, CANNY_SECOND_THRESHOLD)
 
-    # Minimum line length is a third of the image width since there's a lot of border in my test images.
-    lines = cv2.HoughLinesP(
-        edge_detected_image, 
-        HOUGH_STEP_SIZE_RHO, 
-        math.pi / 180, 
-        HOUGH_VOTE_THRESHOLD, 
-        image_width / 3, 
-        HOUGH_MAX_LINE_GAP
-    )
-    print(lines)
-    return None
+    minimum_line_size = 250
+    found_line_configuration = False
+    lines: numpy.ndarray = None
+    while not found_line_configuration:
+        lines = cv2.HoughLines(
+            edge_detected_image,
+            HOUGH_STEP_SIZE_RHO,
+            math.pi / 180,
+            # This is the minimum size to constitute a line. It's probably
+            # a function of the image size or something, right?
+            # image_width // 5
+            minimum_line_size        
+        )
+        if len(lines) > 5:
+            minimum_line_size += 5
+            if DEBUG:
+                print()
+                print(f'\tUnreliable line count {len(lines)}; trying again with minimum size {minimum_line_size}.')
+            continue
+        else:
+            found_line_configuration = True
+    potential_angles = list()
+    for line in lines:
+        rho,theta = line[0]
+        angle_degrees = (theta * 180) / math.pi
+        if DEBUG:
+            print(f'theta = {theta} radians, or {angle_degrees} degrees')
+        # Throw out serious outlier lines. If there's more than 10 degrees of skew, we're hosed.
+        # TODO: This should be a constant.
+        if abs(90 - angle_degrees) < 10:
+            potential_angles.append(angle_degrees)
+
+    return sum(potential_angles) / len(potential_angles)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -202,7 +223,7 @@ def main():
         if args.dump_images:
             dump_images(output_directory, document_images)
         
-        if pages_handled == 4:
+        if pages_handled == 45:
             left_image = document_images[0]['image_data']
             get_text_skew_angle(left_image)
             exit()
