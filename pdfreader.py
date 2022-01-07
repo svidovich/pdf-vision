@@ -4,6 +4,7 @@ import math
 import numpy
 import os
 import sys
+import uuid
 
 from io import BytesIO
 from multiprocessing import cpu_count, Pool
@@ -171,7 +172,14 @@ def get_text_skew_angle(image: Image) -> float:
             # image_width // 5
             minimum_line_size        
         )
-        if len(lines) > 5:
+        if lines is None:
+            lines = list()
+        if len(lines) == 0:
+            if DEBUG:
+                print()
+                print(f'No lines found! Backpedaling line size threshold change.')
+            minimum_line_size -= 4
+        elif len(lines) > 5:
             minimum_line_size += 5
             if DEBUG:
                 print()
@@ -191,7 +199,10 @@ def get_text_skew_angle(image: Image) -> float:
             potential_angles.append(angle_degrees)
 
     if len(potential_angles) != 0:
-        return sum(potential_angles) / len(potential_angles)
+        return 90 - sum(potential_angles) / len(potential_angles)
+    else:
+        cv2.imwrite(f'canny-{uuid.uuid4()}.jpg', edge_detected_image)
+        return 0
 
 
 def main():
