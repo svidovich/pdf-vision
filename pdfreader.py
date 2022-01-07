@@ -209,6 +209,7 @@ def get_text_skew_angle(image: Image) -> float:
 
 
 MEDIAN_BLUR_FILTER_KERNEL_SIZE = 3
+THRESHOLDING_CLASSIFIER = 45
 def clean_image(image: Image) -> Image:
     # Median blur auto-detects kernel areas, takes medians of the pixels
     # in those areas, and replaces the pixels in the kernel areas with that value.
@@ -217,7 +218,21 @@ def clean_image(image: Image) -> Image:
         MEDIAN_BLUR_FILTER_KERNEL_SIZE
     )
 
-    cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', filtered_grayscale_image)
+    # NOTE:
+    # Thresholding wasn't working great for me. I think it might be that I don't
+    # have a consistent enough image, because I can't seem to find a happy medium
+    # between 'annihilate the corner' and 'show busted text lol'
+    # I'm going to leave it out for now, but the code might be useful later, so I'm
+    # going to leave it here. I'm lucky that my text quality is looking good
+    # after the medianBlur.
+
+    # threshold_used, thresholded_image = cv2.threshold(
+    #     filtered_grayscale_image,
+    #     THRESHOLDING_CLASSIFIER, # Value used to classify pixel values
+    #     255, # Value assigned to pixels exceeding the threshold
+    #     cv2.THRESH_BINARY # The type of thresholding to do
+    # )
+    # cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', thresholded_image)
 
     return filtered_grayscale_image
 
