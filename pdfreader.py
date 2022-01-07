@@ -201,7 +201,10 @@ def get_text_skew_angle(image: Image) -> float:
     if len(potential_angles) != 0:
         return 90 - sum(potential_angles) / len(potential_angles)
     else:
-        cv2.imwrite(f'canny-{uuid.uuid4()}.jpg', edge_detected_image)
+        if DEBUG:
+            canny_filename = f'canny-{uuid.uuid4()}.jpg'
+            print(f'No potential angles found, writing edge-detected image to {canny_filename}')
+            cv2.imwrite(canny_filename, edge_detected_image)
         return 0
 
 
@@ -241,7 +244,14 @@ def main():
 
         right_image = document_images[1]['image_data']
         right_skew_angle = get_text_skew_angle(right_image)
+        if pages_handled == 9:
+            rotated_left_image: Image = left_image.rotate(-left_skew_angle)
+            left_image.save('l_unrotated.jpg')
+            rotated_left_image.save('l_rotated.jpg')
 
+            rotated_right_image: Image = right_image.rotate(-right_skew_angle)
+            right_image.save('r_unrotated.jpg')
+            rotated_right_image.save('r_rotated.jpg')
 
         pages_handled += 1
         print(f'Page {pages_handled} skew angles are L {left_skew_angle} and R {right_skew_angle}')
