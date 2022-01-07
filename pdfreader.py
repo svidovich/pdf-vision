@@ -70,6 +70,13 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator:
                             else Image.open(BytesIO(image_data))
                 }
                 image_number += 1
+                # NOTE
+                # Instead of returning all of the loaded images at once, we
+                # are yielding them one at a time lazily. This is because Pillow
+                # leaks memory like a sieve when you try and juggle images around.
+                # No matter how careful you are to close your images as soon as you're
+                # done messing around with them, it still runs up memory. Until this
+                # gets fixed, we're forced to do it this way.
                 yield image
 
 
@@ -80,7 +87,6 @@ def save_image(image_metadata: dict) -> bool:
         image_save_directory = image_metadata['image_save_directory']
         image_save_path = f'{image_save_directory}{image_file_name}'
         image_data.save(image_save_path)
-        # image_data.close()
         return True
     except Exception as e:
         print(f'Failed to save image: {e}')
@@ -100,6 +106,9 @@ def do_page_split(image: Image) -> Tuple:
     """
     Very stupid split that cuts an image in half.
     """
+
+    # TODO: Maybe we can do houghlines and find the x
+    # location of a line with +/- 0 degree skew?
 
     image_width, image_height = image.size
     left_page = image.crop(
