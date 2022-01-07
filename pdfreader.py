@@ -162,7 +162,9 @@ HOUGH_STEP_SIZE_RHO = 1
 # Canny edge detection param constants
 CANNY_FIRST_THRESHOLD = 50
 CANNY_SECOND_THRESHOLD = 200
-
+# The maximum angle of a line that we'll consider as a valid
+# returned line from the Hough process
+MAXIMUM_SKEW_ANGLE = 10
 def get_text_skew_angle(image: Image) -> float:
     image_width, image_height = image.size
     quantified_image = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
@@ -176,9 +178,13 @@ def get_text_skew_angle(image: Image) -> float:
             edge_detected_image,
             HOUGH_STEP_SIZE_RHO,
             math.pi / 180,
-            # This is the minimum size to constitute a line. It's probably
-            # a function of the image size or something, right?
-            # image_width // 5
+            # NOTE
+            # This is the minimum size to constitute a line. The correct
+            # value for this is hotly debated by my computer. If I get this
+            # wrong, there are either
+            # - 1 zillion incorrect lines
+            # - no lines at all
+            # So we're going to iterate until we find a good value for it.
             minimum_line_size        
         )
         if lines is None:
@@ -203,8 +209,7 @@ def get_text_skew_angle(image: Image) -> float:
         if DEBUG:
             print(f'theta = {theta} radians, or {angle_degrees} degrees')
         # Throw out serious outlier lines. If there's more than 10 degrees of skew, we're hosed.
-        # TODO: This should be a constant.
-        if abs(90 - angle_degrees) < 10:
+        if abs(90 - angle_degrees) < MAXIMUM_SKEW_ANGLE:
             potential_angles.append(angle_degrees)
 
     if len(potential_angles) != 0:
