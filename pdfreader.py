@@ -192,6 +192,12 @@ def get_text_skew_angle(image: Image) -> float:
         if len(lines) == 0:
             if DEBUG:
                 print()
+                # NOTE:
+                # There's a careful balance here. We backpedal just enough that this
+                # acts like a sliding window until we get some decent lines. If we ever
+                # get caught in an infinite loop, we should probably increase the window
+                # size to have more opportunities for valid line counts -- at the expense
+                # of ( even worse ) performance.
                 print(f'No lines found! Backpedaling line size threshold change.')
             minimum_line_size -= 4
         elif len(lines) > 5:
@@ -215,6 +221,9 @@ def get_text_skew_angle(image: Image) -> float:
     if len(potential_angles) != 0:
         return 90 - sum(potential_angles) / len(potential_angles)
     else:
+        # NOTE:
+        # This isn't always an error case. Sometimes there's nothing / very little
+        # on the page to go by, and this winds up acting as a filter.
         if DEBUG:
             canny_filename = f'canny-{uuid.uuid4()}.jpg'
             print(f'No potential angles found, writing edge-detected image to {canny_filename}')
@@ -280,7 +289,6 @@ def main():
         if args.dump_images:
             dump_images(output_directory, document_images)
         
-        # if pages_handled == 45:
         left_image = document_images[0]['image_data']
         left_skew_angle = get_text_skew_angle(left_image)
 
