@@ -208,6 +208,19 @@ def get_text_skew_angle(image: Image) -> float:
         return 0
 
 
+MEDIAN_BLUR_FILTER_KERNEL_SIZE = 3
+def clean_image(image: Image) -> Image:
+    # Median blur auto-detects kernel areas, takes medians of the pixels
+    # in those areas, and replaces the pixels in the kernel areas with that value.
+    filtered_grayscale_image = cv2.medianBlur(
+        cv2.cvtColor(numpy.array(image), cv2.COLOR_BGR2GRAY), # Grayscale version of image
+        MEDIAN_BLUR_FILTER_KERNEL_SIZE
+    )
+
+    cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', filtered_grayscale_image)
+
+    return filtered_grayscale_image
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', required=True, help='The PDF to read.')
@@ -246,12 +259,16 @@ def main():
         right_skew_angle = get_text_skew_angle(right_image)
         if pages_handled == 9:
             rotated_left_image: Image = left_image.rotate(-left_skew_angle)
-            left_image.save('l_unrotated.jpg')
-            rotated_left_image.save('l_rotated.jpg')
+            # left_image.save('l_unrotated.jpg')
+            # rotated_left_image.save('l_rotated.jpg')
 
             rotated_right_image: Image = right_image.rotate(-right_skew_angle)
-            right_image.save('r_unrotated.jpg')
-            rotated_right_image.save('r_rotated.jpg')
+            # right_image.save('r_unrotated.jpg')
+            # rotated_right_image.save('r_rotated.jpg')
+
+            cleaned_left_image: Image = clean_image(rotated_left_image)
+            cleaned_right_image: Image = clean_image(rotated_right_image)
+            exit(0)
 
         pages_handled += 1
         print(f'Page {pages_handled} skew angles are L {left_skew_angle} and R {right_skew_angle}')
