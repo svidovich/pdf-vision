@@ -266,7 +266,6 @@ def clean_image(image: Image) -> numpy.ndarray:
     cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', thresholded_image)
 
     return thresholded_image
-    # return filtered_grayscale_image
 
 def main():
     parser = argparse.ArgumentParser()
@@ -313,21 +312,26 @@ def main():
 
         cleaned_left_image: numpy.ndarray = clean_image(rotated_left_image)
 
-        # cleaned_left_image = cv2.bitwise_not(cleaned_left_image)
         cleaned_right_image: numpy.ndarray = clean_image(rotated_right_image)
 
         image_height, image_width = cleaned_left_image.shape
+
         if pages_handled == 9:
-            boxes = pytesseract.image_to_boxes(cleaned_left_image) 
-            display_image = None
-            for box in boxes.splitlines():
-                box = box.split(' ')
-                display_image = cv2.rectangle(cleaned_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
+            if DEBUG:
+                boxes = pytesseract.image_to_boxes(cleaned_left_image) 
+                display_image = None
+                for box in boxes.splitlines():
+                    box = box.split(' ')
+                    display_image = cv2.rectangle(cleaned_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
 
-            if display_image is not None:
-                cv2.imshow('img', display_image)
-                cv2.waitKey(0)
+                if display_image is not None:
+                    cv2.imshow('img', display_image)
+                    cv2.waitKey(0)
 
+            cv2.imshow('img', cleaned_left_image)
+            text = pytesseract.image_to_string(cleaned_left_image, lang='srp')
+            print(text)
+            cv2.waitKey(0)
             exit(0)
 
 
