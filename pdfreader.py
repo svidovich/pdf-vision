@@ -234,6 +234,8 @@ def get_text_skew_angle(image: Image) -> float:
 
 MEDIAN_BLUR_FILTER_KERNEL_SIZE = 3
 THRESHOLDING_CLASSIFIER = 45
+THRESHOLDING_BLOCK_SIZE = 13  # Must be odd
+THRESHOLDING_SUBTRACTED_NEIGHBORHOOD_CONSTANT = 2
 def clean_image(image: Image) -> numpy.ndarray:
     # Median blur auto-detects kernel areas, takes medians of the pixels
     # in those areas, and replaces the pixels in the kernel areas with that value.
@@ -250,15 +252,21 @@ def clean_image(image: Image) -> numpy.ndarray:
     # going to leave it here. I'm lucky that my text quality is looking good
     # after the medianBlur.
 
-    # threshold_used, thresholded_image = cv2.threshold(
-    #     filtered_grayscale_image,
-    #     THRESHOLDING_CLASSIFIER, # Value used to classify pixel values
-    #     255, # Value assigned to pixels exceeding the threshold
-    #     cv2.THRESH_BINARY # The type of thresholding to do
-    # )
-    # cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', thresholded_image)
+    # cv.adaptiveThreshold(src, maxValue, adaptiveMethod, thresholdType, blockSize, C[, dst]) -> dst
+    # C is a constant that is subtracted from the mean or weighted sum of the neighbourhood pixels.
 
-    return filtered_grayscale_image
+    thresholded_image = cv2.adaptiveThreshold(
+        filtered_grayscale_image,
+        255, # Value assigned to pixels exceeding the threshold
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,  # adaptiveMethod
+        cv2.THRESH_BINARY,  # thresholdType
+        THRESHOLDING_BLOCK_SIZE, # Value used to classify pixel values
+        THRESHOLDING_SUBTRACTED_NEIGHBORHOOD_CONSTANT
+    )
+    cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', thresholded_image)
+
+    return thresholded_image
+    # return filtered_grayscale_image
 
 def main():
     parser = argparse.ArgumentParser()
@@ -304,6 +312,8 @@ def main():
         # rotated_right_image.save('r_rotated.jpg')
 
         cleaned_left_image: numpy.ndarray = clean_image(rotated_left_image)
+
+        cleaned_left_image = cv2.bitwise_not(cleaned_left_image)
         cleaned_right_image: numpy.ndarray = clean_image(rotated_right_image)
 
         image_height, image_width = cleaned_left_image.shape
