@@ -3,6 +3,7 @@ import cv2
 import math
 import numpy
 import os
+import pytesseract
 import sys
 import uuid
 
@@ -233,7 +234,7 @@ def get_text_skew_angle(image: Image) -> float:
 
 MEDIAN_BLUR_FILTER_KERNEL_SIZE = 3
 THRESHOLDING_CLASSIFIER = 45
-def clean_image(image: Image) -> Image:
+def clean_image(image: Image) -> numpy.ndarray:
     # Median blur auto-detects kernel areas, takes medians of the pixels
     # in those areas, and replaces the pixels in the kernel areas with that value.
     filtered_grayscale_image = cv2.medianBlur(
@@ -294,18 +295,31 @@ def main():
 
         right_image = document_images[1]['image_data']
         right_skew_angle = get_text_skew_angle(right_image)
+        rotated_left_image: Image = left_image.rotate(-left_skew_angle)
+        # left_image.save('l_unrotated.jpg')
+        # rotated_left_image.save('l_rotated.jpg')
+
+        rotated_right_image: Image = right_image.rotate(-right_skew_angle)
+        # right_image.save('r_unrotated.jpg')
+        # rotated_right_image.save('r_rotated.jpg')
+
+        cleaned_left_image: numpy.ndarray = clean_image(rotated_left_image)
+        cleaned_right_image: numpy.ndarray = clean_image(rotated_right_image)
+
+        image_height, image_width = cleaned_left_image.shape
         if pages_handled == 9:
-            rotated_left_image: Image = left_image.rotate(-left_skew_angle)
-            # left_image.save('l_unrotated.jpg')
-            # rotated_left_image.save('l_rotated.jpg')
+            boxes = pytesseract.image_to_boxes(cleaned_left_image) 
+            display_image = None
+            for box in boxes.splitlines():
+                box = box.split(' ')
+                display_image = cv2.rectangle(cleaned_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
 
-            rotated_right_image: Image = right_image.rotate(-right_skew_angle)
-            # right_image.save('r_unrotated.jpg')
-            # rotated_right_image.save('r_rotated.jpg')
+            if display_image is not None:
+                cv2.imshow('img', display_image)
+                cv2.waitKey(0)
 
-            cleaned_left_image: Image = clean_image(rotated_left_image)
-            cleaned_right_image: Image = clean_image(rotated_right_image)
             exit(0)
+
 
         pages_handled += 1
         print(f'Page {pages_handled} skew angles are L {left_skew_angle} and R {right_skew_angle}')
