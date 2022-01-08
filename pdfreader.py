@@ -234,8 +234,8 @@ def get_text_skew_angle(image: Image) -> float:
 
 MEDIAN_BLUR_FILTER_KERNEL_SIZE = 3
 THRESHOLDING_CLASSIFIER = 45
-THRESHOLDING_BLOCK_SIZE = 13  # Must be odd
-THRESHOLDING_SUBTRACTED_NEIGHBORHOOD_CONSTANT = 2
+THRESHOLDING_BLOCK_SIZE = 11 # Must be odd
+THRESHOLDING_SUBTRACTED_NEIGHBORHOOD_CONSTANT = 4
 def clean_image(image: Image) -> numpy.ndarray:
     # Median blur auto-detects kernel areas, takes medians of the pixels
     # in those areas, and replaces the pixels in the kernel areas with that value.
@@ -313,7 +313,7 @@ def main():
 
         cleaned_left_image: numpy.ndarray = clean_image(rotated_left_image)
 
-        cleaned_left_image = cv2.bitwise_not(cleaned_left_image)
+        # cleaned_left_image = cv2.bitwise_not(cleaned_left_image)
         cleaned_right_image: numpy.ndarray = clean_image(rotated_right_image)
 
         image_height, image_width = cleaned_left_image.shape
