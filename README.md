@@ -33,6 +33,12 @@ $ python3 -m pip install -r requirements.txt
 
 # Sample Output
 
+Input Image:
+![A paragraph in Cyrillic.](media/cropped-text.png)
+
+
+Text Output:
+
 Међу митским бићима у која је веровао 'а мести-
 мично и данас верује сеоски народ источне Србије
 и Баната, својом занимљивошћу и архаичношћу истИ-
