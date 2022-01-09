@@ -297,6 +297,8 @@ def main():
         if args.double_page:
             document_images: List[dict] = split_page(document_image)
         else:
+            # TODO: This will straight up break in the next lines;
+            # I need to clean up this code
             document_images = [document_image]
 
         if args.dump_images:
@@ -311,6 +313,11 @@ def main():
         left_skew_angle = get_text_skew_angle(left_image)
 
         right_image = document_images[1]['image_data']
+        right_image_data = {
+            'page': document_images[1]['page'],
+            'image_number':  document_images[1]['image_number'],
+        }
+
         right_skew_angle = get_text_skew_angle(right_image)
         rotated_left_image: Image = left_image.rotate(-left_skew_angle)
 
@@ -319,10 +326,10 @@ def main():
         cleaned_left_image: numpy.ndarray = clean_image(rotated_left_image)
         cleaned_right_image: numpy.ndarray = clean_image(rotated_right_image)
 
-        image_height, image_width = cleaned_left_image.shape
 
 
         if DEBUG:
+            image_height, image_width = cleaned_left_image.shape
             boxes = pytesseract.image_to_boxes(cleaned_left_image) 
             display_image = None
             for box in boxes.splitlines():
@@ -333,19 +340,19 @@ def main():
                 cv2.imshow('img', display_image)
                 cv2.waitKey(0)
 
-        text: str = pytesseract.image_to_string(cleaned_left_image, lang='srp') or str()
-        write_page_text(output_directory, left_image_data, text)
+        left_text: str = pytesseract.image_to_string(cleaned_left_image, lang='srp') or str()
+        write_page_text(output_directory, left_image_data, left_text)
+        right_text: str = pytesseract.image_to_string(cleaned_right_image, lang='srp') or str()
+        write_page_text(output_directory, right_image_data, right_text)
+
 
         if DEBUG:
             cv2.imshow('img', cleaned_left_image)
-            print(text)
+            print(left_text)
             cv2.waitKey(0)
             
-
-
-
         pages_handled += 1
-        print(f'Page {pages_handled} skew angles are L {left_skew_angle} and R {right_skew_angle}')
+
         print(f'Done handling {pages_handled} pages.\r', end='')
 
 if __name__ == '__main__':
