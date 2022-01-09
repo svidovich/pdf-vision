@@ -244,14 +244,6 @@ def clean_image(image: Image) -> numpy.ndarray:
         MEDIAN_BLUR_FILTER_KERNEL_SIZE
     )
 
-    # NOTE:
-    # Thresholding wasn't working great for me. I think it might be that I don't
-    # have a consistent enough image, because I can't seem to find a happy medium
-    # between 'annihilate the corner' and 'show busted text lol'
-    # I'm going to leave it out for now, but the code might be useful later, so I'm
-    # going to leave it here. I'm lucky that my text quality is looking good
-    # after the medianBlur.
-
     # cv.adaptiveThreshold(src, maxValue, adaptiveMethod, thresholdType, blockSize, C[, dst]) -> dst
     # C is a constant that is subtracted from the mean or weighted sum of the neighbourhood pixels.
 
@@ -303,15 +295,10 @@ def main():
         right_image = document_images[1]['image_data']
         right_skew_angle = get_text_skew_angle(right_image)
         rotated_left_image: Image = left_image.rotate(-left_skew_angle)
-        # left_image.save('l_unrotated.jpg')
-        # rotated_left_image.save('l_rotated.jpg')
 
         rotated_right_image: Image = right_image.rotate(-right_skew_angle)
-        # right_image.save('r_unrotated.jpg')
-        # rotated_right_image.save('r_rotated.jpg')
 
         cleaned_left_image: numpy.ndarray = clean_image(rotated_left_image)
-
         cleaned_right_image: numpy.ndarray = clean_image(rotated_right_image)
 
         image_height, image_width = cleaned_left_image.shape
