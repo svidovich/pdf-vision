@@ -302,6 +302,11 @@ def main():
             dump_images(output_directory, document_images)
         
         left_image = document_images[0]['image_data']
+        left_image_data = {
+            'page': document_images[0]['page'],
+            'image_number':  document_images[0]['image_number'],
+        }
+
         left_skew_angle = get_text_skew_angle(left_image)
 
         right_image = document_images[1]['image_data']
@@ -315,23 +320,27 @@ def main():
 
         image_height, image_width = cleaned_left_image.shape
 
-        if pages_handled == 9:
-            if DEBUG:
-                boxes = pytesseract.image_to_boxes(cleaned_left_image) 
-                display_image = None
-                for box in boxes.splitlines():
-                    box = box.split(' ')
-                    display_image = cv2.rectangle(cleaned_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
 
-                if display_image is not None:
-                    cv2.imshow('img', display_image)
-                    cv2.waitKey(0)
+        if DEBUG:
+            boxes = pytesseract.image_to_boxes(cleaned_left_image) 
+            display_image = None
+            for box in boxes.splitlines():
+                box = box.split(' ')
+                display_image = cv2.rectangle(cleaned_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
 
+            if display_image is not None:
+                cv2.imshow('img', display_image)
+                cv2.waitKey(0)
+
+        text: str = pytesseract.image_to_string(cleaned_left_image, lang='srp') or str()
+        write_page_text(output_directory, left_image_data, text)
+
+        if DEBUG:
             cv2.imshow('img', cleaned_left_image)
-            text = pytesseract.image_to_string(cleaned_left_image, lang='srp')
             print(text)
             cv2.waitKey(0)
-            exit(0)
+            
+
 
 
         pages_handled += 1
