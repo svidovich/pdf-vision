@@ -157,6 +157,18 @@ def split_page(document_image: List[dict]) -> List[dict]:
 
     return new_document_images_list
 
+def write_page_text(output_directory: str, page_data: dict, page_text: str) -> None:
+    pages_directory = f'{output_directory}/pages'
+    if not os.path.exists(pages_directory):
+        os.makedirs(pages_directory, exists_ok=True)
+    elif not os.path.isdir(pages_directory):
+        print(f'{pages_directory} exists, but isn\'t a usable directory. Pick somewhere else.')
+    
+    page_number = page_data['page_number']
+    image_number = page_data['image_number']
+    with open(f'{pages_directory}/{page_number}_{image_number}.txt', 'w') as file_handle:
+        file_handle.write(page_text)
+
 
 # Hough line param constants
 HOUGH_STEP_SIZE_RHO = 1
