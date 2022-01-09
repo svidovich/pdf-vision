@@ -31,6 +31,11 @@ $ source venv/bin/activate
 $ python3 -m pip install -r requirements.txt
 ```
 
+# Sample Input
+
+The book I used to test this program is a Serbian historical text, and can be downloaded from Google Drive:
+https://drive.google.com/file/d/1ViI2Hq5ohhPO1pM-u_i2Lv3MAUrYS-l4/view?usp=sharing
+
 # Sample Output
 
 Input Image:
