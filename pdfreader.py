@@ -160,11 +160,11 @@ def split_page(document_image: List[dict]) -> List[dict]:
 def write_page_text(output_directory: str, page_data: dict, page_text: str) -> None:
     pages_directory = f'{output_directory}/pages'
     if not os.path.exists(pages_directory):
-        os.makedirs(pages_directory, exists_ok=True)
+        os.makedirs(pages_directory, exist_ok=True)
     elif not os.path.isdir(pages_directory):
         print(f'{pages_directory} exists, but isn\'t a usable directory. Pick somewhere else.')
     
-    page_number = page_data['page_number']
+    page_number = page_data['page']
     image_number = page_data['image_number']
     with open(f'{pages_directory}/{page_number}_{image_number}.txt', 'w') as file_handle:
         file_handle.write(page_text)
@@ -267,7 +267,8 @@ def clean_image(image: Image) -> numpy.ndarray:
         THRESHOLDING_BLOCK_SIZE, # Value used to classify pixel values
         THRESHOLDING_SUBTRACTED_NEIGHBORHOOD_CONSTANT
     )
-    cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', thresholded_image)
+    if DEBUG:
+        cv2.imwrite(f'grayscale-{uuid.uuid4()}.jpg', thresholded_image)
 
     return thresholded_image
 
