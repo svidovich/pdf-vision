@@ -186,7 +186,9 @@ def get_text_skew_angle(image: Image) -> float:
     minimum_line_size = 250
     found_line_configuration = False
     lines: numpy.ndarray = None
+    iteration_count = 0
     while not found_line_configuration:
+        iteration_count += 1
         lines = cv2.HoughLines(
             edge_detected_image,
             HOUGH_STEP_SIZE_RHO,
@@ -219,6 +221,10 @@ def get_text_skew_angle(image: Image) -> float:
                 print()
                 print(f'\tUnreliable line count {len(lines)}; trying again with minimum size {minimum_line_size}.')
             continue
+        elif iteration_count > 250:
+            if DEBUG:
+                print('Failed to find usable lines for generating text skew angle. Continuing.')
+            found_line_configuration = True
         else:
             found_line_configuration = True
     potential_angles = list()
