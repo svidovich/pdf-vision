@@ -48,3 +48,6 @@ Text Output:
 мично и данас верује сеоски народ источне Србије
 и Баната, својом занимљивошћу и архаичношћу истИ-
 че се женски шумски демон — шумска мајка.
+
+The entire output text ( unadulterated, I haven't fixed it up at all ) can be downloaded as a tarchive here:
+https://drive.google.com/file/d/1eLnLqTay_zmiPFjzPOuG1D3fOoMJMRCi/view?usp=sharing
