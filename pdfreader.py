@@ -306,6 +306,8 @@ def main():
     print(f'Identified {page_count} pages.')
     document_images: List[dict] = rip_images_from_pages(reader, page_count)
 
+    processing_pool = Pool(2)
+
     print('Handling pages...\n')
     pages_handled = 0
     for document_image in rip_images_from_pages(reader, page_count):
@@ -336,9 +338,15 @@ def main():
         preprocessed_left_image: numpy.ndarray = preprocess_image(left_image)
         preprocessed_right_image: numpy.ndarray = preprocess_image(right_image)
 
-        get_and_save_text(preprocessed_left_image, left_image_data, output_directory)
-        get_and_save_text(preprocessed_right_image, right_image_data, output_directory)
-            
+        # get_and_save_text(preprocessed_left_image, left_image_data, output_directory)
+        # get_and_save_text(preprocessed_right_image, right_image_data, output_directory)
+        
+        result_left = processing_pool.apply_async(get_and_save_text, (preprocessed_left_image, left_image_data, output_directory))
+        result_right = processing_pool.apply_async(get_and_save_text, (preprocessed_right_image, right_image_data, output_directory))
+
+        _ = result_left.get()
+        _ = result_right.get()
+
         pages_handled += 1
 
         print(f'Done handling {pages_handled} pages.\r', end='')
