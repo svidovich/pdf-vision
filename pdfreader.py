@@ -278,6 +278,11 @@ def clean_image(image: Image) -> numpy.ndarray:
 
     return thresholded_image
 
+def preprocess_image(image: Image) -> numpy.ndarray:
+    skew_angle = get_text_skew_angle(image)
+    rotated_image = image.rotate(-skew_angle)
+    return clean_image(rotated_image)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', required=True, help='The PDF to read.')
@@ -324,36 +329,29 @@ def main():
             'image_number':  document_images[1]['image_number'],
         }
 
-        right_skew_angle = get_text_skew_angle(right_image)
-        rotated_left_image: Image = left_image.rotate(-left_skew_angle)
-
-        rotated_right_image: Image = right_image.rotate(-right_skew_angle)
-
-        cleaned_left_image: numpy.ndarray = clean_image(rotated_left_image)
-        cleaned_right_image: numpy.ndarray = clean_image(rotated_right_image)
-
-
+        preprocessed_left_image: numpy.ndarray = preprocess_image(left_image)
+        preprocessed_right_image: numpy.ndarray = preprocess_image(right_image)
 
         if DEBUG:
-            image_height, image_width = cleaned_left_image.shape
-            boxes = pytesseract.image_to_boxes(cleaned_left_image) 
+            image_height, image_width = preprocessed_left_image.shape
+            boxes = pytesseract.image_to_boxes(preprocessed_left_image) 
             display_image = None
             for box in boxes.splitlines():
                 box = box.split(' ')
-                display_image = cv2.rectangle(cleaned_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
+                display_image = cv2.rectangle(preprocessed_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
 
             if display_image is not None:
                 cv2.imshow('img', display_image)
                 cv2.waitKey(0)
 
-        left_text: str = pytesseract.image_to_string(cleaned_left_image, lang='srp') or str()
+        left_text: str = pytesseract.image_to_string(preprocessed_left_image, lang='srp') or str()
         write_page_text(output_directory, left_image_data, left_text)
-        right_text: str = pytesseract.image_to_string(cleaned_right_image, lang='srp') or str()
+        right_text: str = pytesseract.image_to_string(preprocessed_right_image, lang='srp') or str()
         write_page_text(output_directory, right_image_data, right_text)
 
 
         if DEBUG:
-            cv2.imshow('img', cleaned_left_image)
+            cv2.imshow('img', preprocessed_left_image)
             print(left_text)
             cv2.waitKey(0)
             
