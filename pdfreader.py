@@ -283,6 +283,10 @@ def preprocess_image(image: Image) -> numpy.ndarray:
     rotated_image = image.rotate(-skew_angle)
     return clean_image(rotated_image)
 
+def get_and_save_text(preprocessed_image: numpy.ndarray, image_data: dict, output_directory: str) -> None:
+        text: str = pytesseract.image_to_string(preprocessed_image, lang='srp') or str()
+        write_page_text(output_directory, image_data, text)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', required=True, help='The PDF to read.')
@@ -315,7 +319,7 @@ def main():
         if args.dump_images:
             dump_images(output_directory, document_images)
         
-        left_image = document_images[0]['image_data']
+        left_image: Image = document_images[0]['image_data']
         left_image_data = {
             'page': document_images[0]['page'],
             'image_number':  document_images[0]['image_number'],
@@ -323,7 +327,7 @@ def main():
 
         left_skew_angle = get_text_skew_angle(left_image)
 
-        right_image = document_images[1]['image_data']
+        right_image: Image = document_images[1]['image_data']
         right_image_data = {
             'page': document_images[1]['page'],
             'image_number':  document_images[1]['image_number'],
@@ -344,11 +348,8 @@ def main():
                 cv2.imshow('img', display_image)
                 cv2.waitKey(0)
 
-        left_text: str = pytesseract.image_to_string(preprocessed_left_image, lang='srp') or str()
-        write_page_text(output_directory, left_image_data, left_text)
-        right_text: str = pytesseract.image_to_string(preprocessed_right_image, lang='srp') or str()
-        write_page_text(output_directory, right_image_data, right_text)
-
+        get_and_save_text(preprocessed_left_image, left_image_data, output_directory)
+        get_and_save_text(preprocessed_right_image, right_image_data, output_directory)
 
         if DEBUG:
             cv2.imshow('img', preprocessed_left_image)
