@@ -336,25 +336,8 @@ def main():
         preprocessed_left_image: numpy.ndarray = preprocess_image(left_image)
         preprocessed_right_image: numpy.ndarray = preprocess_image(right_image)
 
-        if DEBUG:
-            image_height, image_width = preprocessed_left_image.shape
-            boxes = pytesseract.image_to_boxes(preprocessed_left_image) 
-            display_image = None
-            for box in boxes.splitlines():
-                box = box.split(' ')
-                display_image = cv2.rectangle(preprocessed_left_image, (int(box[1]), image_height - int(box[2])), (int(box[3]), image_height - int(box[4])), (0, 255, 0), 2)
-
-            if display_image is not None:
-                cv2.imshow('img', display_image)
-                cv2.waitKey(0)
-
         get_and_save_text(preprocessed_left_image, left_image_data, output_directory)
         get_and_save_text(preprocessed_right_image, right_image_data, output_directory)
-
-        if DEBUG:
-            cv2.imshow('img', preprocessed_left_image)
-            print(left_text)
-            cv2.waitKey(0)
             
         pages_handled += 1
 
