@@ -225,7 +225,6 @@ def get_text_skew_angle(image: Image) -> float:
             found_line_configuration = True
         iteration_count += 1
         if iteration_count > HOUGH_ITERATION_TRIES:
-            # if DEBUG:
             print('Failed to find usable lines for generating text skew angle. Continuing.')
             found_line_configuration = True
     potential_angles = list()
