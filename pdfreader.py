@@ -315,38 +315,34 @@ def main():
         if args.double_page:
             document_images: List[dict] = split_page(document_image)
         else:
-            # TODO: This will straight up break in the next lines;
-            # I need to clean up this code
             document_images = [document_image]
 
         if args.dump_images:
             dump_images(output_directory, document_images)
         
+        # This is also the default case where it's one book page per
+        # pdf page.
         left_image: Image = document_images[0]['image_data']
         left_image_data = {
             'page': document_images[0]['page'],
             'image_number':  document_images[0]['image_number'],
         }
-
-        left_skew_angle = get_text_skew_angle(left_image)
-
-        right_image: Image = document_images[1]['image_data']
-        right_image_data = {
-            'page': document_images[1]['page'],
-            'image_number':  document_images[1]['image_number'],
-        }
-
         preprocessed_left_image: numpy.ndarray = preprocess_image(left_image)
-        preprocessed_right_image: numpy.ndarray = preprocess_image(right_image)
-
-        # get_and_save_text(preprocessed_left_image, left_image_data, output_directory)
-        # get_and_save_text(preprocessed_right_image, right_image_data, output_directory)
-        
         result_left = processing_pool.apply_async(get_and_save_text, (preprocessed_left_image, left_image_data, output_directory))
-        result_right = processing_pool.apply_async(get_and_save_text, (preprocessed_right_image, right_image_data, output_directory))
 
+        if args.double_page:
+            right_image: Image = document_images[1]['image_data']
+            right_image_data = {
+                'page': document_images[1]['page'],
+                'image_number':  document_images[1]['image_number'],
+            }
+            preprocessed_right_image: numpy.ndarray = preprocess_image(right_image)
+            result_right = processing_pool.apply_async(get_and_save_text, (preprocessed_right_image, right_image_data, output_directory))
+
+        # Await both here.
         _ = result_left.get()
-        _ = result_right.get()
+        if args.double_page:
+            _ = result_right.get()
 
         pages_handled += 1
 
