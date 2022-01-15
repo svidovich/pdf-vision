@@ -1,4 +1,5 @@
 import argparse
+import attr
 import cv2
 import math
 import numpy
@@ -25,6 +26,13 @@ filter_to_extension = {
     '/JPXDecode': '.jp2',
 }
 
+@attr.s(auto_attribs=True)
+class ImageData(object):
+    name: str = attr.ib(kw_only=True)
+    page: int = attr.ib(kw_only=True)
+    image_number: int = attr.ib(kw_only=True)
+    image: Image = attr.ib(kw_only=True)
+
 def get_pdf_info(reader: PdfFileReader) -> dict:
     standard_info = reader.documentInfo
     return {
@@ -34,8 +42,7 @@ def get_pdf_info(reader: PdfFileReader) -> dict:
         'page_layout': reader.getPageLayout(),
     }
 
-
-def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator:
+def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator[ImageData]:
     # For now, let's put the pages as images into this list and return it
     for page_number in range(page_count):
         page: PageObject = reader.getPage(page_number)
@@ -62,14 +69,15 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator:
                 image_mode = 'RGB' if image_color_space == '/DeviceRGB' else 'P'
                 if DEBUG:
                     print(f'Attempting to load image {image_number} on page {page_number}.')
-                image = {
-                    'name': f'{page_number}_{image_number}{image_file_extension}',
-                    'page': page_number,
-                    'image_number': image_number,
-                    'image_data': Image.frombytes(image_mode, (width, height), image_data) \
+                image = ImageData(
+                    name=f'{page_number}_{image_number}{image_file_extension}',
+                    page=page_number,
+                    image_number=image_number,
+                    image_data=Image.frombytes(image_mode, (width, height), image_data) \
                         if image_mode == 'RGB' \
                             else Image.open(BytesIO(image_data))
-                }
+                )
+
                 image_number += 1
                 # NOTE
                 # Instead of returning all of the loaded images at once, we
@@ -123,49 +131,49 @@ def do_page_split(image: Image) -> Tuple:
     return (left_page, right_page)
 
 
-def split_page(document_image: List[dict]) -> List[dict]:
+def split_page(document_image: ImageData) -> List[ImageData]:
     new_document_images_list = list()
     # TODO: This isn't very forward compatible. It breaks if there is
     # more than one image on a page. We'll come back to that if we need
     # to, but right now, I don't wanna get tied up in a whole data modeling
     # exercise for an MVP.
-    page: int = document_image['page']
-    original_name: str = document_image['name']
-    image_number: int = document_image['image_number']
+    page: int = document_image.page
+    original_name: str = document_image.name
+    image_number: int = document_image.image_number
     original_extension: str = original_name[-4:]  # NOTE: Dirty
-    image_data = document_image['image_data']
+    image_data: Image = document_image.image_data
     left_page, right_page = do_page_split(image_data)
 
     image_data.close()
     new_document_images_list.append(
-        {
-            'name': original_name,
-            'page': page,
-            'image_number': image_number,
-            'image_data': left_page
-        }
+        ImageData(
+            name=original_name,
+            page=page,
+            image_number=image_number,
+            image_data=left_page
+        )
     )
 
     new_document_images_list.append(
-        {
-            'name': f'{page}_{image_number + 1}{original_extension}',
-            'page': page,
-            'image_number': image_number + 1,
-            'image_data': right_page
-        }
+        ImageData(
+            name=f'{page}_{image_number + 1}{original_extension}',
+            page=page,
+            image_number=image_number + 1,
+            image_data=right_page    
+        )
     )
 
     return new_document_images_list
 
-def write_page_text(output_directory: str, page_data: dict, page_text: str) -> None:
+def write_page_text(output_directory: str, page_data: ImageData, page_text: str) -> None:
     pages_directory = f'{output_directory}/pages'
     if not os.path.exists(pages_directory):
         os.makedirs(pages_directory, exist_ok=True)
     elif not os.path.isdir(pages_directory):
         print(f'{pages_directory} exists, but isn\'t a usable directory. Pick somewhere else.')
     
-    page_number = page_data['page']
-    image_number = page_data['image_number']
+    page_number = page_data.page
+    image_number = page_data.image_number
     with open(f'{pages_directory}/{page_number}_{image_number}.txt', 'w') as file_handle:
         file_handle.write(page_text)
 
@@ -278,12 +286,13 @@ def clean_image(image: Image) -> numpy.ndarray:
 
     return thresholded_image
 
-def preprocess_image(image: Image) -> numpy.ndarray:
+def preprocess_image(image_data: ImageData) -> numpy.ndarray:
+    image: Image = image_data.image_data
     skew_angle = get_text_skew_angle(image)
     rotated_image = image.rotate(-skew_angle)
     return clean_image(rotated_image)
 
-def get_and_save_text(preprocessed_image: numpy.ndarray, image_data: dict, output_directory: str) -> None:
+def get_and_save_text(preprocessed_image: numpy.ndarray, image_data: ImageData, output_directory: str) -> None:
         text: str = pytesseract.image_to_string(preprocessed_image, lang='srp') or str()
         write_page_text(output_directory, image_data, text)
 
@@ -304,7 +313,6 @@ def main():
     info = get_pdf_info(reader)
     page_count: int = info['page_count']
     print(f'Identified {page_count} pages.')
-    document_images: List[dict] = rip_images_from_pages(reader, page_count)
 
     processing_pool = Pool(2)
 
@@ -312,7 +320,7 @@ def main():
     pages_handled = 0
     for document_image in rip_images_from_pages(reader, page_count):
         if args.double_page:
-            document_images: List[dict] = split_page(document_image)
+            document_images: List[ImageData] = split_page(document_image)
         else:
             document_images = [document_image]
 
@@ -321,21 +329,13 @@ def main():
         
         # This is also the default case where it's one book page per
         # pdf page.
-        left_image: Image = document_images[0]['image_data']
-        left_image_data = {
-            'page': document_images[0]['page'],
-            'image_number':  document_images[0]['image_number'],
-        }
-        preprocessed_left_image: numpy.ndarray = preprocess_image(left_image)
+        left_image_data: ImageData = document_images[0]
+        preprocessed_left_image: numpy.ndarray = preprocess_image(left_image_data)
         result_left = processing_pool.apply_async(get_and_save_text, (preprocessed_left_image, left_image_data, output_directory))
 
         if args.double_page:
-            right_image: Image = document_images[1]['image_data']
-            right_image_data = {
-                'page': document_images[1]['page'],
-                'image_number':  document_images[1]['image_number'],
-            }
-            preprocessed_right_image: numpy.ndarray = preprocess_image(right_image)
+            right_image_data = document_images[1]
+            preprocessed_right_image: numpy.ndarray = preprocess_image(right_image_data)
             result_right = processing_pool.apply_async(get_and_save_text, (preprocessed_right_image, right_image_data, output_directory))
 
         # Await both here.
