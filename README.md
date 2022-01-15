@@ -9,7 +9,7 @@ You can have a `scratch/` folder to stash your items, and the gitignore will han
 # Dependencies
 
 We require:
-
+- attrs for data classes.
 - PyPDF2 for reading PDFs.
 - Pillow for handling images.
 - Tesseract for OCR.
