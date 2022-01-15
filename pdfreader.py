@@ -178,8 +178,9 @@ CANNY_SECOND_THRESHOLD = 200
 # The maximum angle of a line that we'll consider as a valid
 # returned line from the Hough process
 MAXIMUM_SKEW_ANGLE = 10
+# How many times we try to get a valid houghlines result before bailing
+HOUGH_ITERATION_TRIES = 12
 def get_text_skew_angle(image: Image) -> float:
-    image_width, image_height = image.size
     quantified_image = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
     edge_detected_image = cv2.Canny(quantified_image, CANNY_FIRST_THRESHOLD, CANNY_SECOND_THRESHOLD)
 
@@ -223,7 +224,7 @@ def get_text_skew_angle(image: Image) -> float:
         else:
             found_line_configuration = True
         iteration_count += 1
-        if iteration_count > 20:
+        if iteration_count > HOUGH_ITERATION_TRIES:
             # if DEBUG:
             print('Failed to find usable lines for generating text skew angle. Continuing.')
             found_line_configuration = True
