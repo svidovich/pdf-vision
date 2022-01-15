@@ -10,7 +10,7 @@ import uuid
 
 from io import BytesIO
 from multiprocessing import cpu_count, Pool
-from typing import List, Tuple, Generator
+from typing import Iterator, List, Tuple
 
 from PIL import Image
 
@@ -42,7 +42,7 @@ def get_pdf_info(reader: PdfFileReader) -> dict:
         'page_layout': reader.getPageLayout(),
     }
 
-def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator[ImageData]:
+def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Iterator[ImageData]:
     # For now, let's put the pages as images into this list and return it
     for page_number in range(page_count):
         page: PageObject = reader.getPage(page_number)
@@ -56,7 +56,7 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator[I
 
                 # Workaround for explosive NotImplementedError - grabs
                 # raw image data via private property
-                image_data: bytes = encoded_image._data
+                image_bytes: bytes = encoded_image._data
                 # TODO: Right now we're doing a lot of hard dictionary accesses
                 # Later this should probably be a little safer
                 width: int = encoded_image['/Width']
@@ -73,9 +73,9 @@ def rip_images_from_pages(reader: PdfFileReader, page_count: int) -> Generator[I
                     name=f'{page_number}_{image_number}{image_file_extension}',
                     page=page_number,
                     image_number=image_number,
-                    image_data=Image.frombytes(image_mode, (width, height), image_data) \
+                    image=Image.frombytes(image_mode, (width, height), image_bytes) \
                         if image_mode == 'RGB' \
-                            else Image.open(BytesIO(image_data))
+                            else Image.open(BytesIO(image_bytes))
                 )
 
                 image_number += 1
@@ -141,16 +141,16 @@ def split_page(document_image: ImageData) -> List[ImageData]:
     original_name: str = document_image.name
     image_number: int = document_image.image_number
     original_extension: str = original_name[-4:]  # NOTE: Dirty
-    image_data: Image = document_image.image_data
-    left_page, right_page = do_page_split(image_data)
+    raw_image: Image = document_image.image
+    left_page, right_page = do_page_split(raw_image)
 
-    image_data.close()
+    raw_image.close()
     new_document_images_list.append(
         ImageData(
             name=original_name,
             page=page,
             image_number=image_number,
-            image_data=left_page
+            image=left_page
         )
     )
 
@@ -159,7 +159,7 @@ def split_page(document_image: ImageData) -> List[ImageData]:
             name=f'{page}_{image_number + 1}{original_extension}',
             page=page,
             image_number=image_number + 1,
-            image_data=right_page    
+            image=right_page    
         )
     )
 
@@ -287,7 +287,7 @@ def clean_image(image: Image) -> numpy.ndarray:
     return thresholded_image
 
 def preprocess_image(image_data: ImageData) -> numpy.ndarray:
-    image: Image = image_data.image_data
+    image: Image = image_data.image
     skew_angle = get_text_skew_angle(image)
     rotated_image = image.rotate(-skew_angle)
     return clean_image(rotated_image)
