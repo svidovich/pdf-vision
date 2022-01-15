@@ -340,12 +340,13 @@ def main():
 
         # Await both here.
         _ = result_left.get()
+        print(f'Wrote a new page to {left_image_data.page}_{left_image_data.image_number}.txt!\r', end='')
         if args.double_page:
             _ = result_right.get()
+            print(f'Wrote a new page to {right_image_data.page}_{right_image_data.image_number}.txt!\r', end='')
 
         pages_handled += 1
 
-        print(f'Done handling {pages_handled} pages.\r', end='')
 
 if __name__ == '__main__':
     main()
